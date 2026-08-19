@@ -1,13 +1,9 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
+# Primary infrastructure resources belong here
+resource "aws_s3_bucket" "example" {
+  bucket = "${var.environment}-app-storage-bucket"
+
+  tags = {
+    Environment = var.environment
+    ManagedBy   = "Terraform"
   }
-}
-
-
-provider "aws" {
-  region = "eu-north-1"
 }
