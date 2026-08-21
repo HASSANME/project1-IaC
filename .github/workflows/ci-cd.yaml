@@ -12,14 +12,6 @@ permissions:
 
 
 jobs:
-
-  debug:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Debug OIDC claims
-        uses: github/actions-oidc-debugger@v1
-        
   plan:
     name: Terraform plan
     runs-on: ubuntu-latest
