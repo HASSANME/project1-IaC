@@ -3,7 +3,8 @@ name: "CI test of bucket creation with encrypted TF data of SOPS"
 on:
   push:
     branches: [ main ]
-    paths: ["terraform/**"]
+    paths: ["terraform/**",
+            ".github/workflows/**"]
 
 
 jobs:
@@ -12,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v4
