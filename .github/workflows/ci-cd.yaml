@@ -58,10 +58,7 @@ jobs:
           aws sts get-caller-identity
 
       - name: Terraform Init
-        working-directory: ./terraform
-        run: |
-          ls 
-          terraform init
+        run: terraform init
 
       - name: Terraform Validate
         run: |
@@ -69,10 +66,7 @@ jobs:
           terraform validate
 
       - name: Terraform Plan
-        working-directory: ./terraform
-        run: |
-          ls
-          terraform plan
+        run: terraform plan
 
   deploy:
     name: Terraform apply
@@ -115,6 +109,7 @@ jobs:
 
       # FIX 7: Swapped the command to apply (the name said apply but the code said destroy)
       - name: Deploy to AWS
+        working-directory: ./terraform
         run: |
           ls
           terraform init
