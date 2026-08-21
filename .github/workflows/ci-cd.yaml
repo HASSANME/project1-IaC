@@ -59,7 +59,9 @@ jobs:
 
       - name: Terraform Init
         working-directory: ./terraform
-        run: terraform init
+        run: |
+          ls 
+          terraform init
 
       - name: Terraform Validate
         run: |
@@ -68,7 +70,9 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./terraform
-        run: terraform plan
+        run: |
+          ls
+          terraform plan
 
   deploy:
     name: Terraform apply
