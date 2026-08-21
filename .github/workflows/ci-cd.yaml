@@ -48,13 +48,14 @@ jobs:
       - name: Configure AWS Credentials for github actions
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          audience: sts.amazonaws.com
           aws-region: ${{ secrets.AWS_REGION }}
           role-to-assume: ${{ secrets.ROLE_TO_ASSUME }} 
 
       - name: Verify AWS Identity
         run: |
           aws sts get-caller-identity
-          
+
       - name: Terraform Init
         run: terraform init
 
