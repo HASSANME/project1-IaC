@@ -6,38 +6,54 @@ on:
     paths: ["terraform/**",
             ".github/workflows/**"]
 
-
 jobs:
   plan:
     name: Terraform plan
     runs-on: ubuntu-latest
+    # Define a central directory to store cached provider binaries
+    env:
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
 
     steps:
+      # FIX 1: You must check out your code first
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      # FIX 2: Enable native caching to speed up terraform init
+      - name: Cache Terraform Providers
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
+
+      # FIX 3: Initialize the plugin cache folder directory before running terraform
+      - name: Create Cache Directory
+        run: mkdir -p ${{ github.workspace }}/.terraform.d/plugin-cache
+
       - name: Hashicorp - Terraform setup
         uses: hashicorp/setup-terraform@v3
-
 
       - name: Configure AWS Credentials for github actions
         uses: aws-actions/configure-aws-credentials@v4
         with:
           audience: sts.amazonaws.com
-          aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.ROLE_TO_ASSUME}} 
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }} 
 
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Validate
         run: |
-          terraform fmt -recursive
+          terraform fmt -check -recursive
           terraform validate
-        continue-on-error: false
 
       - name: Terraform Plan
         run: terraform plan
@@ -46,21 +62,43 @@ jobs:
     name: Terraform apply
     needs: plan
     runs-on: ubuntu-latest
+    env:
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
     steps:
+      # FIX 4: You must also check out your code in the deploy job
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      # FIX 5: Mirror caching configuration for the deploy stage
+      - name: Cache Terraform Providers
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
+
+      - name: Create Cache Directory
+        run: mkdir -p ${{ github.workspace }}/.terraform.d/plugin-cache
+
+      # FIX 6: Added the missing hashicorp/setup-terraform step to the deploy job
+      - name: Hashicorp - Terraform setup
+        uses: hashicorp/setup-terraform@v3
+
       - name: Configure AWS Credentials for github actions
         uses: aws-actions/configure-aws-credentials@v4
         with:
           audience: sts.amazonaws.com
-          aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.ROLE_TO_ASSUME}}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
 
+      # FIX 7: Swapped the command to apply (the name said apply but the code said destroy)
       - name: Deploy to AWS
         run: |
           terraform init
-          terraform destroy -auto-approve
+          terraform apply -auto-approve
