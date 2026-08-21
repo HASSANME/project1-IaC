@@ -22,8 +22,6 @@ jobs:
       - name: Hashicorp - Terraform setup
         uses: hashicorp/setup-terraform@v3
 
-      - name: Cache Terraform providers
-        uses: terraform-cache/terraform-cache@v1
 
       - name: Configure AWS Credentials for github actions
         uses: aws-actions/configure-aws-credentials@v4
