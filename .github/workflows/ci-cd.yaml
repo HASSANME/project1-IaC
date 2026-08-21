@@ -7,6 +7,30 @@ on:
 
 
 jobs:
+  cache-tf:
+    env:
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
+
+    name: Cache Terraform providers
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+
+        - name: Hashicorp - Terraform setup
+          uses: hashicorp/setup-terraform@v3.1.2
+
+        - name: Create Plugin Cache Directory
+          run: mkdir -p ${{ github.workspace }}/.terraform.d/plugin-cache
+
+        - name: Cache Terraform Providers
+          uses: actions/cache@v4
+          with:
+            path: ${{ github.workspace }}/.terraform.d/plugin-cache
+            key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+            restore-keys: |
+              ${{ runner.os }}-terraform-
+
   plan:
     name: Terraform plan
     runs-on: ubuntu-latest
@@ -69,4 +93,3 @@ jobs:
         run: |
           terraform init
           terraform destroy -auto-approve
-          
