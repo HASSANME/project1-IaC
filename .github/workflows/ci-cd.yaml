@@ -114,5 +114,10 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
+      - name: Destory at AWS
+        working-directory: ./terraform
+        run: |
+          terraform destroy
+
 
 
