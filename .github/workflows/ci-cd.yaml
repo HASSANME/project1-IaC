@@ -116,6 +116,7 @@ jobs:
       # FIX 7: Swapped the command to apply (the name said apply but the code said destroy)
       - name: Deploy to AWS
         run: |
+          ls
           terraform init
           terraform apply -auto-approve
 
