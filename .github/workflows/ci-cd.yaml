@@ -12,8 +12,7 @@ permissions:
 
 
 jobs:
-  plan:
-
+  SOPS:
     name : Set Up SOPS
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +24,8 @@ jobs:
 
       - name: Decrypt Secrets
         run: for file in terraform/*; do sops -d -i "$file"; done
-
+  
+  plan:
     name: Terraform plan
     runs-on: ubuntu-latest
     # Define a central directory to store cached provider binaries
