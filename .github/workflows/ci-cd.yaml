@@ -26,11 +26,6 @@ jobs:
         with:
           version: latest
 
-      # Install age on the runner
-      - name: Setup Age
-        uses: alessiodionisi/setup-age-action@v1.4.0
-        with:
-              version: latest
   
       - name: SOPS Initialize
         run: |
