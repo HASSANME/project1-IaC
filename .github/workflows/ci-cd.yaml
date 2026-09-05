@@ -162,6 +162,6 @@ jobs:
       - name: Destory at AWS
         working-directory: ./terraform
         run: |
-          terraform destroy
+          terraform destroy -auto-approve
 
 
