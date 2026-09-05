@@ -22,8 +22,7 @@ jobs:
           chmod 600 ~/.config/sops/age/keys.txt
 
       - name: Decrypt Secrets
-        run: |
-        for file in terraform/*; do sops -d -i "$file"; done
+        run: for file in terraform/*; do sops -d -i "$file"; done
 
     name: Terraform plan
     runs-on: ubuntu-latest
