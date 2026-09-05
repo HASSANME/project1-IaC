@@ -17,11 +17,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt update -y && sudo apt upgrade -y 
-          sudo apt install -y sops age
-      
+          - name: Checkout Code
+            uses: actions/checkout@v4
+
+          # Install SOPS on the runner
+          - name: Setup SOPS
+            uses: nhedger/setup-sops@v2
+            with:
+              version: latest
+
+          # Install age on the runner
+          - name: Setup Age
+            uses: alessiodionisi/setup-age-action@v1
+            with:
+              version: latest
+  
       - name: SOPS Initialize
         run: |
           mkdir -p ~/.config/sops/age/
