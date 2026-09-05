@@ -183,3 +183,8 @@ concurrency:
 
 SOPS -i option
 -i option in SOPS is mandatory because it saves your data in a temporary file after SOPS ends of reading the file and then it saves to the current file and it avoids any problems that might caused after decrypting the same file with the current name as is.
+
+
+SOPS of github acitons doesnt need AGE
+
+jobs of githuba ctions are indepenatdans and must use NEED option to connect each other , also use actions/upload-artifact@v4 to pass artifacts among them 
