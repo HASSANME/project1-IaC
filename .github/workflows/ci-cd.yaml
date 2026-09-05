@@ -17,19 +17,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-          - name: Checkout Code
-            uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-          # Install SOPS on the runner
-          - name: Setup SOPS
-            uses: nhedger/setup-sops@v2
-            with:
-              version: latest
+      # Install SOPS on the runner
+      - name: Setup SOPS
+        uses: nhedger/setup-sops@v2
+        with:
+          version: latest
 
-          # Install age on the runner
-          - name: Setup Age
-            uses: alessiodionisi/setup-age-action@v1
-            with:
+      # Install age on the runner
+      - name: Setup Age
+        uses: alessiodionisi/setup-age-action@v1
+        with:
               version: latest
   
       - name: SOPS Initialize
