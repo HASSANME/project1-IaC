@@ -13,6 +13,18 @@ permissions:
 
 jobs:
   plan:
+    name : Set Up SOPS
+    steps:
+      - name: SOPS Initialize
+        run: |
+          mkdir -p ~/.config/sops/age/
+          echo "${{ AGE_SECRET_KEY }}" > ~/.config/sops/age/keys.txt
+          chmod 600 ~/.config/sops/age/keys.txt
+
+      - name: Decrypt Secrets
+        run: |
+        for file in terraform/*; do sops -d -i "$file"; done
+
     name: Terraform plan
     runs-on: ubuntu-latest
     # Define a central directory to store cached provider binaries

@@ -180,3 +180,6 @@ concurrency:
 - ✅ Check AWS CloudTrail logs when OIDC fails — they show the exact reason AWS rejected the token
 
 """
+
+SOPS -i option
+-i option in SOPS is mandatory because it saves your data in a temporary file after SOPS ends of reading the file and then it saves to the current file and it avoids any problems that might caused after decrypting the same file with the current name as is.
