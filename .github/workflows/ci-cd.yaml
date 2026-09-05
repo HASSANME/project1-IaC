@@ -13,14 +13,14 @@ permissions:
 
 jobs:
   plan:
-  
+
     name : Set Up SOPS
     runs-on: ubuntu-latest
     steps:
       - name: SOPS Initialize
         run: |
           mkdir -p ~/.config/sops/age/
-          echo "${{ AGE_SECRET_KEY }}" > ~/.config/sops/age/keys.txt
+          echo "${{ secrets.AGE_SECRET_KEY }}" > ~/.config/sops/age/keys.txt
           chmod 600 ~/.config/sops/age/keys.txt
 
       - name: Decrypt Secrets
