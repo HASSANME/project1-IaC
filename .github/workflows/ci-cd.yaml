@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   plan:
+  
     name : Set Up SOPS
     runs-on: ubuntu-latest
     steps:
