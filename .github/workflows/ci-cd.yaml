@@ -15,6 +15,13 @@ jobs:
   SOPS:
     name : Set Up SOPS
     runs-on: ubuntu-latest
+    
+    name: Install dependencies
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y sops age
+
+      
     steps:
       - name: SOPS Initialize
         run: |
