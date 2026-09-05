@@ -181,10 +181,35 @@ concurrency:
 
 """
 
-SOPS -i option
--i option in SOPS is mandatory because it saves your data in a temporary file after SOPS ends of reading the file and then it saves to the current file and it avoids any problems that might caused after decrypting the same file with the current name as is.
+Notes of 05/09/2026:
 
+"""
 
-SOPS of github acitons doesnt need AGE
+## 1. SOPS
 
-jobs of githuba ctions are indepenatdans and must use NEED option to connect each other , also use actions/upload-artifact@v4 to pass artifacts among them 
+- **`-i` option** — the `-i` flag in SOPS is mandatory because it writes the output to a temporary file first, then replaces the original file once SOPS finishes reading. This avoids corruption problems that could occur when decrypting a file in-place under the same name.
+- **SOPS in GitHub Actions doesn't need AGE** — when running SOPS inside GitHub Actions, AGE is not required
+
+## 2. GitHub Actions Jobs
+
+- Jobs in GitHub Actions are **independent by default** and must use the `needs` keyword to create dependencies between them
+- Use `actions/upload-artifact@v4` and `actions/download-artifact@v4` to pass artifacts between jobs
+
+## 3. Terraform
+
+### How to decide the number of `.tf` files
+
+- **Responsibility per file** — each file should have a clear, single responsibility
+- **Easy navigation** — splitting by resource type or feature area makes the project easier to navigate
+- **Reuse versus copy-paste** — use modules and variables to avoid duplicating code across files
+
+### Terraform State
+
+- Terraform state represents the **current infrastructure status** as tracked by Terraform, stored in memory
+- That state can be persisted in **local files** or in **cloud storage** (e.g., S3 + DynamoDB) — cloud is preferred
+
+### Visualising Terraform Files
+
+- Use `terraform graph` to generate a **dependency graph** of your `.tf` resources
+
+"""
