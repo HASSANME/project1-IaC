@@ -1,2 +1,5 @@
 .sops.env
 .keys.txt
+.vscode/
+*.decrypted~*
+.sops.yaml
