@@ -1,1 +1,0 @@
-https://github.com/GoogleCloudPlatform/microservices-demo/blob/main/LICENSE
