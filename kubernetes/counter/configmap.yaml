@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: counter-config
+  labels:
+    app: counter
+data:
+  APP_NAME: "counter-service in kubernetes"
+  IN_DOCKER: "true"
+  PRODUCT_CLIENT_URL: "product:5001"

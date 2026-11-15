@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: barista-config
+  labels:
+    app: barista
+data:
+  APP_NAME: "barista-service in kubernetes"
+  IN_DOCKER: "true"

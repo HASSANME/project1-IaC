@@ -213,3 +213,202 @@ Notes of 05/09/2026:
 - Use `terraform graph` to generate a **dependency graph** of your `.tf` resources
 
 """
+
+Notes of 17/10/2026:
+
+"""
+
+## 1. AWS Availability Zones in Terraform
+
+- **Core Concept** — Never hardcode AZ names (e.g., `us-east-1a`). Use the `aws_availability_zones` data source to discover available zones dynamically.
+- **Challenge** — Hardcoded names break if you change regions, or because AWS account-to-physical-AZ mappings vary between different accounts.
+
+### Best Practice Code
+
+```hcl
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+resource "aws_subnet" "public" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+  cidr_block        = "10.0.${count.index}.0/24"
+}
+```
+
+- **Key Takeaway** — Use `count` combined with the dynamic `names` array to cleanly spread resources (like subnets) across multiple zones automatically.
+
+## 2. Terraform `cidrsubnet` Function
+
+### Core Takeaway
+
+- `cidrsubnet("10.0.0.0/16", 8, count.index)` breaks a large `/16` network into smaller `/24` subnets (256 IPs each).
+- The index shifts the third octet sequentially (`10.0.0.0/24`, `10.0.1.0/24`, `10.0.2.0/24`).
+
+### AWS Gotcha
+
+- ⚠️ AWS reserves **5 IPs per subnet**, meaning a `/24` provides **251 usable IPs** instead of 256.
+
+### Best Practice
+
+- **Automate, don't hardcode** — using `cidrsubnet` with `count.index` keeps your networking code clean and scalable.
+
+## 3. Subnet Public IPs
+
+- **What it does** — Setting `map_public_ip_on_launch = true` forces any new EC2 instance in that subnet to automatically get a public IPv4 address.
+- **When to use it** — Use this only on **public subnets** (e.g., for web servers, load balancers, or bastion hosts). Keep it `false` for **private subnets** (e.g., databases) to secure them.
+- **Terraform Behavior** — Terraform sets this to `false` by default. You must explicitly toggle it to `true` in your `aws_subnet` block.
+- **Cost factor** — AWS charges for every public IPv4 address, so keeping it disabled on private subnets saves money.
+
+## 4. AWS NAT Gateway
+
+### Concepts Learned
+
+- **Outbound Only** — A NAT Gateway allows instances in a **private subnet** to connect outbound to the internet (e.g., for software patches) while blocking unsolicited inbound connections.
+- **Public vs. Private** — Public NAT Gateways live in a public subnet and use an Elastic IP (EIP) to hit the internet. Private NAT Gateways route traffic to other VPCs or on-premises networks without using an EIP.
+
+### Constraints & Best Practices
+
+- **AZ Isolation** — A NAT Gateway is highly available within a single AZ. If that AZ goes down, resources in other zones using it lose connectivity. For production, deploy **one NAT Gateway per AZ**.
+- **No Security Groups** — You cannot attach a Security Group directly to a NAT Gateway. Traffic must be controlled at the instance level or via Subnet Network ACLs (NACLs).
+- **Cost Factor** — Charges apply per hour and per GB processed. For heavy internal AWS traffic (like pushing to S3 or ECR), use **VPC Endpoints** instead to bypass NAT costs.
+
+### Quick Setup Checklist
+
+1. Deploy the NAT Gateway inside a **Public Subnet**.
+2. Allocate and associate an **Elastic IP**.
+3. Edit the **Private Subnet's Route Table** and add a route: `0.0.0.0/0` ➡️ `nat-gateway-id`.
+
+## 5. Amazon EKS
+
+### Concepts Learned
+
+- **Amazon EKS Managed Control Plane** — AWS automatically runs and scales the Kubernetes API and etcd across multiple Availability Zones.
+- **EKS Auto Mode** — A deployment option that automates node provisioning, updates, and cluster management with minimal overhead.
+
+### Implementation Details
+
+- **Cluster Deployment Command:**
+
+```bash
+eksctl create cluster --name my-cluster --region us-east-1 --managed
+```
+
+- **Authentication Command** — To connect your local machine to the new cluster:
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name my-cluster
+```
+
+### Decisions & Lessons Learned
+
+- **IAM Prerequisites** — Separate IAM roles are strictly required for the cluster control plane (`AmazonEKSClusterPolicy`) and the worker nodes (`AmazonEKSWorkerNodePolicy`).
+
+## 6. Dockerfile vs. Docker Compose
+
+- **Dockerfile vs. Docker Compose** — A Dockerfile acts as a blueprint to build a **single container image**. Docker Compose acts as an orchestrator to link and run **multiple containers** simultaneously using a single YAML configuration.
+- **Port Mapping Clarity** — When mapping container ports (e.g., `8080:3000`), the first number is the **external host port** (what you access in your browser) and the second is the **internal container port** (where the app actually runs).
+- **Service Coordination** — To prevent an application container from crashing before its database dependency is fully up and running, you use the `depends_on` flag inside the Compose file to dictate startup order.
+- **Data Persistence** — To prevent data loss when a database container is destroyed, you must declare dedicated `volumes` in your Compose file to safely map database storage to your host machine.
+
+## 7. Docker Compose to Kubernetes Migration
+
+### Core Takeaways
+
+- **Keep the Dockerfile** — Kubernetes still needs images to run your app, so your Dockerfile never goes away.
+- **Drop Compose for Production** — Kubernetes replaces Docker Compose entirely to handle your containers across a cluster.
+- **Keep Compose for Local Dev** — It is best practice to keep your Compose file purely so developers can spin up the app instantly on their laptops without needing heavy Kubernetes tools.
+
+### The Quick Translation Guide
+
+When you move from Docker Compose to Kubernetes, your configuration shifts like this:
+
+- `services` ➡️ **Deployments** (manages your app containers)
+- `ports` ➡️ **Services** (handles internal/external routing)
+- `volumes` ➡️ **PersistentVolumeClaims** (handles cluster storage)
+
+### Key Tool to Remember
+
+- **`kompose convert`** — A handy terminal tool that automatically rewrites your `docker-compose.yml` file into Kubernetes files for you.
+
+## 8. Docker EXPOSE Instruction
+
+- **EXPOSE is just a label** — It is strictly documentation for users and tools. It does **not** actually open or map ports to your host machine.
+- **How to open ports** — To actually access your app from your computer, you must explicitly use the `-p host_port:container_port` flag when running the container (e.g., `docker run -p 8080:80`).
+- **Default behavior** — If you don't specify a protocol (like `EXPOSE 80`), Docker assumes TCP.
+- **Best practice** — Always include it right before your `CMD` or `ENTRYPOINT` line so other developers instantly know which port your app uses.
+
+## 9. Dockerfile Basics & Multi-Stage Builds
+
+- **Dockerfile Basics** — `FROM` sets the base, `WORKDIR` sets the folder, `COPY` moves files, `RUN` builds the setup, and `CMD` starts the app.
+- **Multi-Stage Builds** — `as modules` names a build stage, and `COPY --from=modules` pulls the finished file into a clean, final image to remove build bloat.
+- **`FROM scratch`** — A completely blank base image. It makes Go containers tiny (10–20MB) and highly secure because it contains no OS or shell for hackers to exploit.
+
+## 10. Terraform + EKS Architecture
+
+- **The Architecture** — Use official AWS VPC and EKS modules in Terraform to build the cluster safely in private subnets.
+- **The Manifest Trick** — To handle dozens of raw K8s files without rewriting them to HCL, use the `gavinbunney/kubectl` provider to loop through a `/manifests` folder automatically.
+- **The Golden Rule** — Terraform is great for spinning up the infrastructure (VPCs, EKS). For managing dozens of fast-moving app manifests, the industry standard is to hand them off to a **GitOps tool like ArgoCD**.
+
+"""
+
+Notes of 15/11/2026:
+
+"""
+
+# Kubernetes Migration, Multi-Tier Proxy, & Event-Driven Architecture — DevOps Notes
+
+
+## 3. Multi-Tier Proxy Disambiguation (Edge vs. Gateway vs. Service Mesh)
+
+Do not conflate the three distinct proxy layers across the architecture:
+
+1. **Edge Reverse Proxy / Ingress (Traefik)**:
+   - Operates at the cluster/environment perimeter.
+   - Handles external client traffic, SSL termination, and path routing/prefix-stripping (e.g., routing `/api` to the Go gateway and `/` to the web frontend).
+2. **API Gateway & Protocol Translation (Go Proxy)**:
+   - Application-layer gateway listening on port `5000`.
+   - **Protocol translation:** Web frontends speak HTTP/JSON; internal microservices (`product` on `5001`, `counter` on `5002`) communicate over internal gRPC (HTTP/2 + Protobuf). The proxy translates inbound HTTP/REST requests to backend gRPC calls, handles CORS preflight, and logs requests.
+   - Decouples internal gRPC contracts from client browsers (exposing internal gRPC directly to public browser clients is an antipattern).
+3. **Service Mesh Sidecar (Consul Connect / Envoy)**:
+   - Infrastructure-layer proxy (configured in Nomad / Service Mesh setups).
+   - Manages mutual TLS (mTLS), internal service identity, telemetry, and local upstream port bindings without hardcoded remote IP addresses.
+
+---
+
+## 4. Service Startup Dependencies: `initContainers` vs. `depends_on`
+
+- **Kubernetes Startup Concurrency**:
+  - Kubernetes has **no native `depends_on` directive**. All pods in a deployment are scheduled and booted concurrently.
+  - Application services (`counter`, `barista`, `kitchen`) starting before backing stores (`postgres`, `rabbitmq`) enter `CrashLoopBackOff`, polluting logs and triggering false monitoring alerts.
+- **TCP Health Gates via `initContainers`**:
+  - Use lightweight `initContainers` running `busybox:1.36` with Netcat (`nc -z <service> <port>`) TCP polling to gate container startup until upstream dependencies accept connections.
+- **Operational Rules**:
+  - `initContainers` execute **strictly sequentially**. If an earlier init container hangs, subsequent init containers and the main application container are blocked indefinitely.
+  - Never rely on `restartPolicy: Always` as a startup ordering mechanism.
+
+```yaml
+initContainers:
+  - name: wait-for-postgres
+    image: busybox:1.36
+    command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+  - name: wait-for-rabbitmq
+    image: busybox:1.36
+    command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+```
+
+## 6. RabbitMQ & Event-Driven Architecture (Production Operations)
+
+- **Architecture Pattern**:
+  - Implements a **Choreography Saga** for distributed transactions (`counter` initiates, `barista` and `kitchen` react via event queues).
+  - Port **`5672`** handles AMQP application traffic; Port **`15672`** exposes the HTTP Management UI and Prometheus metrics endpoint.
+- **Production Hardening & Gotchas**:
+  - **Volume Durability:** Docker Compose configs often omit named volumes for RabbitMQ; in Kubernetes, durable queues require persistent storage via StatefulSets.
+  - **Default Credentials:** Default `guest/guest` is restricted to localhost in RabbitMQ and must never be used in non-local environments; configure least-privilege users.
+  - **At-Least-Once Delivery & Idempotency:** Network partitions and retries mean consumers will occasionally receive duplicate messages. Worker consumers must be idempotent (safe against duplicate processing).
+  - **Broker Backpressure & Alarms:** RabbitMQ throttles/blocks upstream publishers when memory or disk watermarks are exceeded.
+  - **Core Monitoring Telemetry:** Monitor **Queue Depth**, **Unacknowledged Message Count** (identifies stuck/crashed workers), and **Consumer Count** (detects worker starvation). Always configure Dead Letter Queues (DLQ) with retry limits to catch malformed poison-pill messages.
+
+---
